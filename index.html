@@ -53,6 +53,34 @@
     .close { background:transparent; color:var(--muted); font-size:22px; padding:0 4px; line-height:1; }
     @media (max-width:760px) { .layout { grid-template-columns:1fr; } header { align-items:flex-start; flex-direction:column; } }
     @media print { body { background:white; } .wrap, header, .layout, .footer-note, .modal-backdrop { display:none !important; } }
+    body {
+  font-family: Tahoma, sans-serif;
+}
+
+.employment-options {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-top: 6px;
+}
+
+.employment-options label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 14px;
+  font-weight: normal;
+}
+
+.employment-options input {
+  width: auto;
+  margin: 0;
+}
+
+#otherEmploymentWrap[hidden] {
+  display: none;
+}
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -72,8 +100,6 @@
         <h2>Client details</h2>
         <label for="clientName">Client name (optional)</label>
         <input id="clientName" placeholder="e.g. Alex" autocomplete="off">
-        <label for="listDate">List date</label>
-        <input id="listDate" type="date">
 
         <div style="height:1px;background:#edf0ed;margin:22px 0"></div>
         <h2>Add a vacancy</h2>
@@ -84,6 +110,17 @@
           <input id="company" required maxlength="100" placeholder="e.g. Example Company">
           <label for="location">Location</label>
           <input id="location" required maxlength="100" placeholder="e.g. Dandenong, VIC">
+          <label>Employment type</label>
+<div class="employment-options">
+  <label><input type="radio" name="employmentType" value="Full time" checked> Full time</label>
+  <label><input type="radio" name="employmentType" value="Part time"> Part time</label>
+  <label><input type="radio" name="employmentType" value="Casual"> Casual</label>
+  <label><input type="radio" name="employmentType" value="Other"> Other</label>
+</div>
+<div id="otherEmploymentWrap" hidden>
+  <label for="otherEmployment">Specify employment type</label>
+  <input id="otherEmployment" maxlength="60" placeholder="Enter employment type">
+</div>
           <label for="jobUrl">Application link (URL)</label>
           <input id="jobUrl" type="url" required placeholder="https://...">
           <p class="hint">Paste the full job advertisement or application URL.</p>
@@ -99,7 +136,7 @@
         </div>
         <div id="vacancyList" class="empty">Your vacancies will appear here.<br>Add your first job using the form.</div>
         <div class="actions">
-          <button class="primary" id="pdfButton" disabled>Download PDF</button>
+          <button class="primary" id="pdfButton" disabled>PDF</button>
           <button class="secondary" id="clearButton" disabled>Clear list</button>
         </div>
         <p class="footer-note">Your list is held temporarily in this browser tab. Download the PDF before closing or refreshing the page.</p>
@@ -137,9 +174,18 @@
     const vacancies = [];
     let pendingVacancy = null;
     let lastShortener = 'https://da.gd';
-
-    const today = new Date();
-    $('listDate').value = new Date(today.getTime() - today.getTimezoneOffset()*60000).toISOString().slice(0,10);
+    document.querySelectorAll('input[name="employmentType"]').forEach(option => {
+  option.addEventListener('change', () => {
+    const isOther = option.checked && option.value === 'Other';
+    if (isOther) {
+      $('otherEmploymentWrap').hidden = false;
+      $('otherEmployment').focus();
+    } else if (option.checked) {
+      $('otherEmploymentWrap').hidden = true;
+      $('otherEmployment').value = '';
+    }
+  });
+});
 
     function setStatus(message, kind='') {
       $('formStatus').textContent = message;
@@ -242,10 +288,16 @@
         const qr = document.createElement('img'); qr.className='qr'; qr.alt='QR code for '+v.title; qr.src=v.qr;
         const details = document.createElement('div');
         const title = document.createElement('h3'); title.textContent=v.title;
-        const meta = document.createElement('div'); meta.className='meta'; meta.textContent=`${v.company} · ${v.location}`;
+        const meta = document.createElement('div');
+meta.className = 'meta';
+meta.textContent = `${v.company} | ${v.location}`;
+
+const employment = document.createElement('div');
+employment.className = 'meta';
+employment.textContent = v.employmentType;
         const link = document.createElement('a'); link.className='short'; link.href=v.shortUrl; link.target='_blank'; link.rel='noopener'; link.textContent=v.shortUrl;
         const remove = document.createElement('button'); remove.className='danger'; remove.textContent='Remove'; remove.type='button'; remove.addEventListener('click',()=>{vacancies.splice(i,1);render();});
-        details.append(title,meta,link,remove);
+        details.append(title,meta,employment,link,remove);
         row.append(qr,details); list.append(row);
       });
     }
@@ -253,12 +305,23 @@
     $('vacancyForm').addEventListener('submit', async (event) => {
       event.preventDefault();
       const button=$('addButton'); button.disabled=true; setStatus('Trying available link shorteners…');
-      const v = {
-        title:$('jobTitle').value.trim(),
-        company:$('company').value.trim(),
-        location:$('location').value.trim(),
-        longUrl:''
-      };
+      const selectedEmployment = document.querySelector('input[name="employmentType"]:checked').value;
+
+const v = {
+  title:$('jobTitle').value.trim(),
+  company:$('company').value.trim(),
+  location:$('location').value.trim(),
+  employmentType: selectedEmployment === 'Other'
+    ? $('otherEmployment').value.trim()
+    : selectedEmployment,
+  longUrl:''
+};
+
+if (selectedEmployment === 'Other' && !v.employmentType) {
+  setStatus('Please specify the employment type.', 'error');
+  button.disabled = false;
+  return;
+}
       try {
         v.longUrl=safeUrl($('jobUrl').value.trim());
         try {
@@ -296,44 +359,122 @@
       if(confirm('Clear all vacancies from this list?')){vacancies.splice(0);render();setStatus('List cleared.');}
     });
 
-    $('pdfButton').addEventListener('click', async()=>{
-      const button=$('pdfButton'); button.disabled=true; button.textContent='Preparing PDF…';
-      try {
-        const {jsPDF}=window.jspdf;
-        const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
-        const pageW=210, margin=16, contentW=pageW-margin*2;
-        const client=$('clientName').value.trim();
-        const dateValue=$('listDate').value;
-        const dateText=dateValue?new Date(dateValue+'T12:00:00').toLocaleDateString('en-AU'):'';
-        let y=20;
-        doc.setFont('helvetica','bold'); doc.setFontSize(20); doc.setTextColor(35,92,65);
-        doc.text('Your Job Vacancy List',margin,y); y+=9;
-        doc.setFont('helvetica','normal'); doc.setFontSize(10); doc.setTextColor(80,90,84);
-        const subtitle=[client?`Prepared for: ${client}`:'',dateText?`Date: ${dateText}`:''].filter(Boolean).join('     ');
-        if(subtitle){doc.text(subtitle,margin,y);y+=10;}
-        y+=3;
-        for(let i=0;i<vacancies.length;i++){
-          const v=vacancies[i], rowH=39, qrSize=27, qrX=margin, textX=margin+qrSize+9;
-          if(y+rowH>278){doc.addPage();y=20;}
-          doc.addImage(v.qr,'PNG',qrX,y,qrSize,qrSize);
-          doc.setFont('helvetica','bold');doc.setFontSize(12);doc.setTextColor(25,35,30);
-          const titleLines=doc.splitTextToSize(`${i+1}. ${v.title}`,contentW-qrSize-9);
-          doc.text(titleLines,textX,y+5);
-          let ty=y+5+(titleLines.length*5.2);
-          doc.setFont('helvetica','normal');doc.setFontSize(10);doc.setTextColor(65,75,69);
-          doc.text(v.company,textX,ty);ty+=5;
-          doc.text(v.location,textX,ty);ty+=6;
-          doc.setFontSize(9);doc.setTextColor(36,105,73);
-          const linkLines=doc.splitTextToSize(v.shortUrl,contentW-qrSize-9);
-          doc.text(linkLines,textX,ty);
-          y+=Math.max(rowH, ty-y+(linkLines.length*4)+7);
+  function escapeHTML(value) {
+  return String(value).replace(/[&<>"']/g, char => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  })[char]);
+}
+
+$('pdfButton').addEventListener('click', () => {
+  const printWindow = window.open('', '_blank');
+
+  if (!printWindow) {
+    setStatus('Please allow pop-ups for this website to print your PDF.', 'error');
+    return;
+  }
+
+  const client = $('clientName').value.trim();
+
+  const vacancyHTML = vacancies.map(v => `
+    <div class="vacancy">
+      <img class="qr" src="${v.qr}" alt="QR code">
+      <div class="details">
+        <div class="job-title">${escapeHTML(v.title)}</div>
+        <div>${escapeHTML(v.company)} | ${escapeHTML(v.location)}</div>
+        <div>${escapeHTML(v.employmentType)}</div>
+        <div class="short-link">${escapeHTML(v.shortUrl)}</div>
+      </div>
+    </div>
+  `).join('');
+
+  printWindow.document.write(`
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <title>Job Vacancies</title>
+      <style>
+        @page {
+          size: A4;
+          margin: 15mm;
         }
-        const pages=doc.getNumberOfPages();
-        for(let p=1;p<=pages;p++){doc.setPage(p);doc.setFontSize(8);doc.setTextColor(130,138,132);doc.text(`Job vacancy list  •  Page ${p} of ${pages}`,pageW/2,289,{align:'center'});}
-        doc.save('job-vacancy-list.pdf');setStatus('PDF downloaded.','ok');
-      }catch(error){setStatus('Could not generate PDF: '+error.message,'error');}
-      finally{button.disabled=false;button.textContent='Download PDF';}
-    });
+
+        * {
+          box-sizing: border-box;
+        }
+
+        body {
+          font-family: Tahoma, sans-serif;
+          font-size: 14pt;
+          color: #000;
+          background: #fff;
+          margin: 0;
+        }
+
+        .client {
+          font-size: 14pt;
+          margin-bottom: 15mm;
+        }
+
+        .vacancy {
+          display: flex;
+          align-items: flex-start;
+          gap: 8mm;
+          margin-bottom: 12mm;
+          padding-bottom: 4mm;
+          page-break-inside: avoid;
+          break-inside: avoid;
+        }
+
+        .qr {
+          width: 30mm;
+          height: 30mm;
+          object-fit: contain;
+          flex-shrink: 0;
+        }
+
+        .details {
+          flex: 1;
+          min-width: 0;
+          line-height: 1.5;
+          overflow-wrap: anywhere;
+        }
+
+        .job-title {
+          font-weight: bold;
+          margin-bottom: 2mm;
+        }
+
+        .short-link {
+          margin-top: 2mm;
+        }
+
+        @media screen {
+          body {
+            padding: 15mm;
+          }
+        }
+      </style>
+    </head>
+    <body>
+      ${client ? `<div class="client">Prepared for: ${escapeHTML(client)}</div>` : ''}
+      ${vacancyHTML}
+      <script>
+        window.onload = function() {
+          window.focus();
+          window.print();
+        };
+      <\/script>
+    </body>
+    </html>
+  `);
+
+  printWindow.document.close();
+});
   </script>
 </body>
 </html>

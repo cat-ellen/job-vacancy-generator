@@ -314,7 +314,19 @@ if (selectedEmployment === 'Other' && !v.employmentType) {
           const shortUrl=await shortenUrl(v.longUrl);
           addVacancy(v,shortUrl);
         } catch {
-          setStatus('Automatic shortening was unsuccessful. Please enter a short link manually.');
+          console.error('TinyURL shortening error:', error);
+
+          console.error('Error details:', {
+            name: error.name,
+            message: error.message,
+            stack: error.stack
+          });
+        
+          setStatus(
+            'Shortening failed: ' + error.message,
+            'error'
+          );
+        
           openManualModal(v);
         }
       } catch (error) { setStatus(error.message,'error'); }

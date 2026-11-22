@@ -461,7 +461,7 @@ $('pdfButton').addEventListener('click', () => {
       </style>
     </head>
     <body>
-      ${client ? `<div class="client">Prepared for: ${escapeHTML(client)}</div>` : ''}
+      ${client ? `<div class="client"><font align="right">${escapeHTML(client)}</font></div>` : ''}
       ${vacancyHTML}
       <script>
         window.onload = function() {

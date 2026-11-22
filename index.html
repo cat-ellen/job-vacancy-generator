@@ -381,8 +381,9 @@ $('pdfButton').addEventListener('click', () => {
     <div class="vacancy">
       <img class="qr" src="${v.qr}" alt="QR code">
       <div class="details">
-        <div>${escapeHTML(v.employmentType)}</div>
-        <div class="job-title">${escapeHTML(v.title)}</div>
+        <div class="job-title">
+          ${escapeHTML(v.employmentType)} ${escapeHTML(v.title)}
+        </div>
         <div>${escapeHTML(v.company)} | ${escapeHTML(v.location)}</div>
         <div class="short-link">${escapeHTML(v.shortUrl)}</div>
       </div>

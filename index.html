@@ -313,7 +313,7 @@ if (selectedEmployment === 'Other' && !v.employmentType) {
         try {
           const shortUrl=await shortenUrl(v.longUrl);
           addVacancy(v,shortUrl);
-        } catch {
+        } catch (error) {
           console.error('TinyURL shortening error:', error);
 
           console.error('Error details:', {

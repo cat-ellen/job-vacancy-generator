@@ -216,8 +216,6 @@
 
   return safeUrl(result.shortUrl);
 }
-      throw lastError || new Error('No shortening service responded.');
-    }
     function makeQrData(url, size=200) {
       const holder = document.createElement('div');
       new QRCode(holder, {text:url,width:size,height:size,correctLevel:QRCode.CorrectLevel.M});

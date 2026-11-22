@@ -415,8 +415,9 @@ $('pdfButton').addEventListener('click', () => {
         }
 
         .client {
-          font-size: 14pt;
+          font-size: 11pt;
           margin-bottom: 15mm;
+          text-align: right;
         }
 
         .vacancy {
@@ -461,7 +462,7 @@ $('pdfButton').addEventListener('click', () => {
       </style>
     </head>
     <body>
-      ${client ? `<div class="client"><font align="right">${escapeHTML(client)}</font></div>` : ''}
+      ${client ? `<div class="client">${escapeHTML(client)}</div>` : ''}
       ${vacancyHTML}
       <script>
         window.onload = function() {

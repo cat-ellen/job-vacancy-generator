@@ -90,15 +90,12 @@
     <header>
       <div>
         <h1>Job Vacancy List Generator</h1>
-        <p>Build a tailored list of job opportunities to share with a client.</p>
       </div>
-      <span class="tag">Browser-based tool</span>
     </header>
 
     <div class="layout">
       <section class="panel">
-        <h2>Client details</h2>
-        <label for="clientName">Client name (optional)</label>
+        <label for="clientName">Page Header (optional)</label>
         <input id="clientName" placeholder="e.g. Alex" autocomplete="off">
 
         <div style="height:1px;background:#edf0ed;margin:22px 0"></div>
@@ -121,12 +118,12 @@
   <label for="otherEmployment">Specify employment type</label>
   <input id="otherEmployment" maxlength="60" placeholder="Enter employment type">
 </div>
-          <label for="jobUrl">Full application URL (optional)</label>
+          <label for="jobUrl">Full URL</label>
           <input id="jobUrl" type="url" placeholder="https://...">
           <p class="hint">Paste the full job advertisement link here and it will be shortened automatically.</p>
-          <label for="existingTinyUrl">Already-shortened link (use if the full URL box is blank)</label>
+          <label for="existingTinyUrl">TinyURL link (optional)</label>
           <input id="existingTinyUrl" type="url" placeholder="https://tinyurl.com/...">
-          <p class="hint">If you already have a TinyURL, leave the full URL box blank and paste it here. It will be used as entered.</p>
+          <p class="hint">If you already have a TinyURL, leave the full URL box blank and paste it here.</p>
           <button class="primary wide" id="addButton" type="submit">Add vacancy</button>
           <div id="formStatus" class="status" role="status" aria-live="polite"></div>
         </form>
@@ -142,7 +139,7 @@
           <button class="primary" id="pdfButton" disabled>PDF</button>
           <button class="secondary" id="clearButton" disabled>Clear list</button>
         </div>
-        <p class="footer-note">Your list is held temporarily in this browser tab. Download the PDF before closing or refreshing the page.</p>
+        <p class="footer-note">Your list is held temporarily in this browser tab. Download the PDF before closing or refreshing the page to avoid losing your list.</p>
       </section>
     </div>
     <p class="footer-note">Short links are requested from public shortening services. QR codes and PDFs are generated in your browser. Do not enter sensitive client information.</p>
@@ -393,7 +390,7 @@ $('pdfButton').addEventListener('click', () => {
   const printWindow = window.open('', '_blank');
 
   if (!printWindow) {
-    setStatus('Please allow pop-ups for this website to print your PDF.', 'error');
+    setStatus('Please allow pop-ups for this website to print or save your PDF.', 'error');
     return;
   }
 

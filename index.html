@@ -121,10 +121,13 @@
   <label for="otherEmployment">Specify employment type</label>
   <input id="otherEmployment" maxlength="60" placeholder="Enter employment type">
 </div>
-          <label for="jobUrl">Application link (URL)</label>
-          <input id="jobUrl" type="url" required placeholder="https://...">
-          <p class="hint">Paste the full job advertisement or application URL.</p>
-          <button class="primary wide" id="addButton" type="submit">Shorten link &amp; add vacancy</button>
+          <label for="jobUrl">Full application URL (optional)</label>
+          <input id="jobUrl" type="url" placeholder="https://...">
+          <p class="hint">Paste the full job advertisement link here and it will be shortened automatically.</p>
+          <label for="existingTinyUrl">Already-shortened link (use if the full URL box is blank)</label>
+          <input id="existingTinyUrl" type="url" placeholder="https://tinyurl.com/...">
+          <p class="hint">If you already have a TinyURL, leave the full URL box blank and paste it here. It will be used as entered.</p>
+          <button class="primary wide" id="addButton" type="submit">Add vacancy</button>
           <div id="formStatus" class="status" role="status" aria-live="polite"></div>
         </form>
       </section>
@@ -290,47 +293,66 @@ employment.textContent = v.employmentType;
 
     $('vacancyForm').addEventListener('submit', async (event) => {
       event.preventDefault();
-      const button=$('addButton'); button.disabled=true; setStatus('Creating TinyURL link…');
+
+      const button = $('addButton');
+      const fullUrlInput = $('jobUrl').value.trim();
+      const existingTinyUrlInput = $('existingTinyUrl').value.trim();
+
       const selectedEmployment = document.querySelector('input[name="employmentType"]:checked').value;
 
-const v = {
-  title:$('jobTitle').value.trim(),
-  company:$('company').value.trim(),
-  location:$('location').value.trim(),
-  employmentType: selectedEmployment === 'Other'
-    ? $('otherEmployment').value.trim()
-    : selectedEmployment,
-  longUrl:''
-};
+      const v = {
+        title: $('jobTitle').value.trim(),
+        company: $('company').value.trim(),
+        location: $('location').value.trim(),
+        employmentType: selectedEmployment === 'Other'
+          ? $('otherEmployment').value.trim()
+          : selectedEmployment,
+        longUrl: ''
+      };
 
-if (selectedEmployment === 'Other' && !v.employmentType) {
-  setStatus('Please specify the employment type.', 'error');
-  button.disabled = false;
-  return;
-}
+      if (selectedEmployment === 'Other' && !v.employmentType) {
+        setStatus('Please specify the employment type.', 'error');
+        return;
+      }
+
+      if (!fullUrlInput && !existingTinyUrlInput) {
+        setStatus('Please enter either a full application URL or an already-shortened link.', 'error');
+        $('jobUrl').focus();
+        return;
+      }
+
+      button.disabled = true;
+
       try {
-        v.longUrl=safeUrl($('jobUrl').value.trim());
-        try {
-          const shortUrl=await shortenUrl(v.longUrl);
-          addVacancy(v,shortUrl);
-        } catch (error) {
-          console.error('TinyURL shortening error:', error);
+        if (fullUrlInput) {
+          // A full URL takes priority and is shortened automatically.
+          v.longUrl = safeUrl(fullUrlInput);
+          setStatus('Creating TinyURL link…');
 
-          console.error('Error details:', {
-            name: error.name,
-            message: error.message,
-            stack: error.stack
-          });
-        
-          setStatus(
-            'Shortening failed: ' + error.message,
-            'error'
-          );
-        
-          openManualModal(v);
+          try {
+            const shortUrl = await shortenUrl(v.longUrl);
+            addVacancy(v, shortUrl);
+          } catch (error) {
+            console.error('TinyURL shortening error:', error);
+            console.error('Error details:', {
+              name: error.name,
+              message: error.message,
+              stack: error.stack
+            });
+
+            setStatus('Shortening failed: ' + error.message, 'error');
+            openManualModal(v);
+          }
+        } else {
+          // No full URL was supplied, so use the existing shortened link as-is.
+          const shortUrl = safeUrl(existingTinyUrlInput);
+          addVacancy(v, shortUrl);
         }
-      } catch (error) { setStatus(error.message,'error'); }
-      finally { button.disabled=false; }
+      } catch (error) {
+        setStatus(error.message, 'error');
+      } finally {
+        button.disabled = false;
+      }
     });
 
     $('copyOriginal').addEventListener('click', async()=>{
